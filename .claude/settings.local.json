@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --version)",
+      "WebSearch",
+      "Bash(pnpm create:*)",
+      "Bash(cp:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(node:*)",
+      "Bash(curl -s http://localhost:5173/src/main.tsx)",
+      "Bash(wrangler --version)",
+      "Bash(wrangler pages:*)"
+    ]
+  }
+}
