@@ -53,6 +53,22 @@ export function resetViewport(): void {
 }
 
 /**
+ * Set the viewport center and zoom directly.
+ */
+export function setViewport(centerX: number, centerY: number, pixelsPerUnit: number): void {
+  const current = viewportStore.state.coordSystem;
+  const next = current.clone();
+  next.worldCenterX = centerX;
+  next.worldCenterY = centerY;
+  next.pixelsPerUnit = Math.min(10000, Math.max(1, pixelsPerUnit));
+  viewportStore.setState((prev) => ({
+    ...prev,
+    coordSystem: next,
+    dirty: true,
+  }));
+}
+
+/**
  * Resize the viewport canvas dimensions.
  */
 export function resizeViewport(width: number, height: number): void {

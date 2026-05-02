@@ -25,6 +25,48 @@ const CONSTANTS = new Set([
 const EXCLUDED = new Set([...STANDARD_VARS, ...MATH_FUNCTIONS, ...CONSTANTS]);
 
 /**
+ * Strip an outer wrapping pair of parentheses if they enclose the entire string.
+ * Returns the original string when the outer paren closes before the end
+ * (e.g. `(x-1)*y`).
+ */
+function stripOuterParens(s: string): string {
+  const trimmed = s.trim();
+  if (trimmed.length < 2 || trimmed[0] !== '(' || trimmed[trimmed.length - 1] !== ')') {
+    return trimmed;
+  }
+  let depth = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    if (trimmed[i] === '(') depth++;
+    else if (trimmed[i] === ')') {
+      depth--;
+      if (depth === 0 && i < trimmed.length - 1) return trimmed;
+    }
+  }
+  return trimmed.slice(1, -1);
+}
+
+/**
+ * Split a string on top-level commas, ignoring commas inside nested
+ * parentheses or brackets.
+ */
+function splitTopLevelCommas(s: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '(' || c === '[') depth++;
+    else if (c === ')' || c === ']') depth--;
+    else if (c === ',' && depth === 0) {
+      parts.push(s.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(s.slice(start));
+  return parts;
+}
+
+/**
  * Extract free variables from a math expression string.
  * Returns unique sorted array of variable names that are not standard
  * variables (x, y, t), math functions, or constants.
@@ -32,26 +74,32 @@ const EXCLUDED = new Set([...STANDARD_VARS, ...MATH_FUNCTIONS, ...CONSTANTS]);
 export function extractFreeVariables(expression: string): string[] {
   if (!expression.trim()) return [];
 
-  // Strip inequality/equality operators to get parseable expressions
+  // Strip inequality/equality operators so each side becomes a plain expression
   const cleaned = expression
     .replace(/[<>]=?/g, '-')
     .replace(/(?<!=)=(?!=)/g, '-');
 
-  try {
-    const node = math.parse(cleaned);
-    const variables = new Set<string>();
+  // Parametric expressions take the form `(fx(t), fy(t))`. mathjs cannot
+  // parse a top-level tuple, so strip the wrapping parens and split on the
+  // top-level comma, then parse each piece independently.
+  const pieces = splitTopLevelCommas(stripOuterParens(cleaned));
+  const variables = new Set<string>();
 
-    node.traverse((node: MathNode) => {
-      if (node.type === 'SymbolNode') {
-        const name = (node as MathNode & { name: string }).name;
-        if (!EXCLUDED.has(name)) {
-          variables.add(name);
+  for (const piece of pieces) {
+    const trimmed = piece.trim();
+    if (!trimmed) continue;
+    try {
+      const node = math.parse(trimmed);
+      node.traverse((n: MathNode) => {
+        if (n.type === 'SymbolNode') {
+          const name = (n as MathNode & { name: string }).name;
+          if (!EXCLUDED.has(name)) variables.add(name);
         }
-      }
-    });
-
-    return Array.from(variables).sort();
-  } catch {
-    return [];
+      });
+    } catch {
+      // partial extraction is better than none
+    }
   }
+
+  return Array.from(variables).sort();
 }
