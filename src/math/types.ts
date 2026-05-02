@@ -4,6 +4,7 @@ export type ExpressionType =
   | 'parametric'
   | 'inequality'
   | 'explicit3d'
+  | 'implicit3d'
   | 'primitive3d'
   | 'unknown'
   | 'invalid';

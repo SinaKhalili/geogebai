@@ -6,6 +6,7 @@ interface Viewport3DState {
   phi: number;     // polar (from +y axis), radians
   distance: number;
   target: { x: number; y: number; z: number };
+  fitPending: boolean;
   dirty: boolean;
 }
 
@@ -14,6 +15,7 @@ const DEFAULT_STATE: Viewport3DState = {
   phi: Math.PI / 3,
   distance: 14,
   target: { x: 0, y: 0, z: 0 },
+  fitPending: false,
   dirty: true,
 };
 
@@ -49,6 +51,20 @@ export function panCameraTarget(dx: number, dy: number, dz: number): void {
 
 export function reset3DViewport(): void {
   viewport3DStore.setState(() => ({ ...DEFAULT_STATE }));
+}
+
+export function requestFit3D(): void {
+  viewport3DStore.setState((prev) => ({ ...prev, fitPending: true, dirty: true }));
+}
+
+export function applyFit3D(target: { x: number; y: number; z: number }, distance: number): void {
+  viewport3DStore.setState((prev) => ({
+    ...prev,
+    target,
+    distance: clamp(distance, 1, 200),
+    fitPending: false,
+    dirty: true,
+  }));
 }
 
 export function mark3DViewportClean(): void {

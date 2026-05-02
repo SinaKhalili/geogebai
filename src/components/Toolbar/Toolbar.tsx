@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useStore } from '@tanstack/react-store';
 import { viewportStore, zoomViewport, resetViewport } from '../../store/viewportStore';
-import { dollyCamera, reset3DViewport } from '../../store/viewport3DStore';
+import { dollyCamera, requestFit3D, reset3DViewport } from '../../store/viewport3DStore';
 import { appModeStore, toggleAppMode } from '../../store/appModeStore';
 
 export function Toolbar() {
@@ -64,6 +64,26 @@ export function Toolbar() {
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </button>
+      {mode === '3D' && (
+        <button
+          onClick={requestFit3D}
+          style={styles.button}
+          title="Fit camera to scene"
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0f0')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h6" />
+            <path d="M4 4v6" />
+            <path d="M20 4h-6" />
+            <path d="M20 4v6" />
+            <path d="M4 20h6" />
+            <path d="M4 20v-6" />
+            <path d="M20 20h-6" />
+            <path d="M20 20v-6" />
+          </svg>
+        </button>
+      )}
       <button
         onClick={handleReset}
         style={styles.button}

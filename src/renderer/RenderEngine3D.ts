@@ -2,6 +2,12 @@ import * as THREE from 'three';
 import type { ExpressionEntry } from '../math/types';
 import { buildSurfaceMesh } from './Surface3DRenderer';
 import { buildPrimitiveMesh } from './Primitive3DRenderer';
+import {
+  buildImplicitSurfaceMesh,
+  DEFAULT_IMPLICIT_BOUNDS,
+  DEFAULT_IMPLICIT_RESOLUTION,
+} from './ImplicitSurface3DRenderer';
+import { buildAxisLabels } from './AxisLabels3D';
 
 interface CameraState {
   theta: number;
@@ -38,8 +44,9 @@ export class RenderEngine3D {
     dir.position.set(5, 10, 7);
     this.scene.add(dir);
 
-    // Axes + grid (math z = vertical)
+    // Axes + ground grid + tick labels (math z = vertical)
     this.scene.add(this.buildAxes(6));
+    this.scene.add(buildAxisLabels(5));
     const grid = new THREE.GridHelper(20, 20, 0xbbbbbb, 0xe4e4e4);
     grid.position.y = 0;
     this.scene.add(grid);
@@ -70,9 +77,45 @@ export class RenderEngine3D {
     this.camera.lookAt(tx, ty, tz);
   }
 
-  render(expressions: ExpressionEntry[], sliderScope: Record<string, number>): void {
+  refresh(expressions: ExpressionEntry[], sliderScope: Record<string, number>): void {
     this.refreshMeshes(expressions, sliderScope);
+  }
+
+  render(): void {
     this.renderer.render(this.scene, this.camera);
+  }
+
+  get plotMeshCount(): number {
+    return this.meshCache.size;
+  }
+
+  /**
+   * Compute camera fit for the current plot meshes. Returns null if no meshes.
+   * Returned target is in math coords; distance is the orbit radius such that
+   * the bounding sphere fits within the camera frustum.
+   */
+  computeFit(): { target: { x: number; y: number; z: number }; distance: number } | null {
+    if (this.meshCache.size === 0) return null;
+    const bbox = new THREE.Box3();
+    for (const { mesh } of this.meshCache.values()) {
+      const meshBox = new THREE.Box3().setFromObject(mesh);
+      if (!meshBox.isEmpty()) bbox.union(meshBox);
+    }
+    if (bbox.isEmpty()) return null;
+
+    const center = bbox.getCenter(new THREE.Vector3());
+    const size = bbox.getSize(new THREE.Vector3());
+    const radius = Math.max(size.length() / 2, 0.5);
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    const aspect = this.camera.aspect || 1;
+    const minFovScale = Math.min(1, aspect);
+    const distance = (radius / Math.sin(fovRad / 2)) / minFovScale * 1.4;
+
+    // World -> math: math.x = world.x; math.y = world.z; math.z = world.y
+    return {
+      target: { x: center.x, y: center.z, z: center.y },
+      distance,
+    };
   }
 
   dispose(): void {
@@ -89,7 +132,11 @@ export class RenderEngine3D {
     for (const entry of expressions) {
       if (!entry.visible) continue;
       const { parsed } = entry;
-      if (parsed.type !== 'explicit3d' && parsed.type !== 'primitive3d') continue;
+      if (
+        parsed.type !== 'explicit3d' &&
+        parsed.type !== 'primitive3d' &&
+        parsed.type !== 'implicit3d'
+      ) continue;
 
       const sig = this.signature(entry, sliderScope);
       const cached = this.meshCache.get(entry.id);
@@ -124,11 +171,11 @@ export class RenderEngine3D {
     if (parsed.type === 'primitive3d') {
       return `prim:${entry.color}:${JSON.stringify(parsed.primitive)}`;
     }
-    // explicit3d depends on raw + color + slider values referenced by free vars
+    // explicit3d / implicit3d depend on raw + color + slider values
     const sliderPart = parsed.freeVariables
       .map((name) => `${name}=${sliderScope[name] ?? 0}`)
       .join(',');
-    return `surf:${entry.color}:${entry.raw}:${sliderPart}`;
+    return `${parsed.type}:${entry.color}:${entry.raw}:${sliderPart}`;
   }
 
   private buildMesh(entry: ExpressionEntry, sliderScope: Record<string, number>): THREE.Mesh | null {
@@ -139,6 +186,19 @@ export class RenderEngine3D {
     if (parsed.type === 'explicit3d' && parsed.evaluator) {
       try {
         return buildSurfaceMesh(parsed.evaluator, sliderScope, color);
+      } catch {
+        return null;
+      }
+    }
+    if (parsed.type === 'implicit3d' && parsed.evaluator) {
+      try {
+        return buildImplicitSurfaceMesh(
+          parsed.evaluator,
+          sliderScope,
+          DEFAULT_IMPLICIT_BOUNDS,
+          DEFAULT_IMPLICIT_RESOLUTION,
+          color,
+        );
       } catch {
         return null;
       }

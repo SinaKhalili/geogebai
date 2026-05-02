@@ -289,14 +289,16 @@ function parseEquality(lhs: string, rhs: string, raw: string): ParsedExpression 
 
   // Case: x = f(y) -> implicit: x - f(y) = 0
   // Or general: LHS = RHS -> implicit: LHS - RHS = 0
+  // If z is referenced, this is an implicit 3D surface F(x, y, z) = 0.
   try {
     const implicitExpr = `(${lhsTrimmed}) - (${rhsTrimmed})`;
     const compiled = math.compile(implicitExpr);
     const freeVariables = extractFreeVariables(raw);
+    const vars = detectVariables(implicitExpr);
+    const type: ExpressionType = vars.hasZ ? 'implicit3d' : 'implicit';
 
-    // All equation forms with = are treated as implicit (LHS - RHS = 0)
     return {
-      type: 'implicit' as ExpressionType,
+      type,
       evaluator: makeEvaluator(compiled),
       parametricEvaluator: null,
       inequalityOp: null,
