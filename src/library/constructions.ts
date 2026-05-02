@@ -16,6 +16,10 @@ export interface Construction {
   name: string;
   era: string;
   description: string;
+  /** Primary-source citation: author, work, location, translation. */
+  source: string;
+  /** Verbatim or near-verbatim text from the cited source, in English. */
+  quotation: string;
   expressions: string[];
   sliders?: Record<string, SliderOverride>;
   viewport?: ViewportOverride;
@@ -40,6 +44,11 @@ export const CONSTRUCTIONS: Construction[] = [
     era: 'Euclid (c. 300 BCE)',
     description:
       'On a given segment, construct an equilateral triangle. Two circles of equal radius meet at a point that completes the triangle.',
+    source:
+      'Euclid, Elements, Book I, Proposition 1 (c. 300 BCE) — translation by Sir Thomas L. Heath (1908)',
+    quotation:
+      'On a given finite straight line to construct an equilateral triangle.\n\n' +
+      'Let AB be the given finite straight line. With centre A and distance AB let the circle BCD be described; again, with centre B and distance BA let the circle ACE be described; and from the point C, in which the circles cut one another, to the points A, B let the straight lines CA, CB be joined. Therefore the triangle ABC is equilateral; and it has been constructed on the given finite straight line AB.',
     expressions: [
       '(x + 0.5)^2 + y^2 = 1',
       '(x - 0.5)^2 + y^2 = 1',
@@ -56,6 +65,11 @@ export const CONSTRUCTIONS: Construction[] = [
     era: 'Euclid (c. 300 BCE)',
     description:
       'A right triangle with squares on each side. The square on the hypotenuse equals the sum of the squares on the two legs.',
+    source:
+      'Euclid, Elements, Book I, Proposition 47 (c. 300 BCE) — translation by Sir Thomas L. Heath (1908)',
+    quotation:
+      'In right-angled triangles the square on the side subtending the right angle is equal to the squares on the sides containing the right angle.\n\n' +
+      'Let ABC be a right-angled triangle having the angle BAC right; I say that the square on BC is equal to the squares on BA, AC. For let there be described on BC the square BDEC, and on BA, AC the squares GB, HC.',
     expressions: [
       // Right triangle: O at origin, A on x-axis at (a,0), B on y-axis at (0,b)
       seg('0', '0', 'a', '0'),
@@ -87,6 +101,10 @@ export const CONSTRUCTIONS: Construction[] = [
     era: 'Archimedes (c. 250 BCE)',
     description:
       'The locus of a point moving outward at constant speed along a ray that rotates at constant angular speed. In polar form, r = a·θ.',
+    source:
+      'Archimedes, On Spirals, Definition 1 (c. 225 BCE) — translation by Sir Thomas L. Heath, The Works of Archimedes (1897)',
+    quotation:
+      'If a straight line drawn in a plane revolve uniformly any number of times about a fixed extremity until it returns to its original position, and if, at the same time as the line revolves, a point move uniformly along the straight line beginning from the fixed extremity, the point will describe a spiral in the plane.',
     expressions: [
       // Render only t >= 0 so we get a true Archimedean spiral (not its mirror)
       `((a*t*cos(t))/(t>=0),(a*t*sin(t))/(t>=0))`,
@@ -103,6 +121,10 @@ export const CONSTRUCTIONS: Construction[] = [
     era: 'Apollonius (c. 200 BCE)',
     description:
       'The three non-degenerate conics — parabola, ellipse, and hyperbola — arise from slicing a cone at different angles.',
+    source:
+      'Apollonius of Perga, Conics, Book I (c. 200 BCE)',
+    quotation:
+      'Apollonius’s Conics organized the systematic study of curves cut from a cone by a plane. In Book I he assigned the three sections the names by which they are still known: παραβολή (parabolē, "alongside"), ἔλλειψις (elleipsis, "falling short"), and ὑπερβολή (hyperbolē, "exceeding") — names that describe how the square on an ordinate compares to a fixed reference rectangle on the axis.',
     expressions: [
       // Parabola
       'y = x^2 / 4 - 3',
@@ -120,6 +142,11 @@ export const CONSTRUCTIONS: Construction[] = [
     era: 'Hippias (c. 420 BCE)',
     description:
       'A vertical line slides leftward at constant speed while a ray rotates from horizontal to vertical at constant speed; their intersection traces this curve. It can square the circle and trisect any angle.',
+    source:
+      'Pappus of Alexandria, Synagoge (Mathematical Collection), Book IV (c. 320 CE), describing a curve attributed to Hippias of Elis (c. 420 BCE)',
+    quotation:
+      'For the squaring of the circle a certain curve was assumed by Dinostratus, Nicomedes, and certain other more recent geometers, which takes its name from this property; for it is called by them the quadratrix.\n\n' +
+      'In the square ABCD let the side AB rotate uniformly about A, so as to come into the position of AD in the same time that BC moves uniformly parallel to itself until it coincides with AD. The locus of the intersection of the moving line and the rotating radius is the quadratrix.',
     expressions: [
       // x(t) = 1 - t, y(t) = (1 - t) * tan((π/2) t), t ∈ [0, 1)
       `((1-t)/((0<=t)*(t<1)), ((1-t)*tan((pi/2)*t))/((0<=t)*(t<1)))`,
@@ -138,6 +165,11 @@ export const CONSTRUCTIONS: Construction[] = [
     era: 'Diocles (c. 180 BCE)',
     description:
       'Defined as y²(2a − x) = x³. Diocles introduced it to construct the cube root of 2 and so duplicate the cube — one of the three classical problems.',
+    source:
+      'Diocles, On Burning Mirrors (c. 180 BCE), surviving in Arabic translation; ed. and trans. G. J. Toomer, Diocles On Burning Mirrors (1976)',
+    quotation:
+      'In On Burning Mirrors, Diocles introduced the curve later called the cissoid (Greek κισσοειδής, "ivy-shaped") to find two mean proportionals between two given lines — the construction by which the side of a cube of double volume can be obtained, solving the Delian problem of doubling the cube.\n\n' +
+      'The cissoid is generated inside a circle of diameter 2a tangent to the y-axis at the origin: from a point on the circle, the curve takes its distance from the origin equal to the chord between the diametrically-opposite point and the vertical tangent.',
     expressions: [
       'y^2 * (2*a - x) - x^3 = 0',
       // Reference circle of diameter 2a tangent to the y-axis at the origin

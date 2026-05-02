@@ -40,6 +40,12 @@ export function LibraryModal({ onClose }: LibraryModalProps) {
                   <span style={styles.itemEra}>{c.era}</span>
                 </div>
                 <div style={styles.itemDesc}>{c.description}</div>
+                <blockquote style={styles.quotation}>
+                  {c.quotation.split('\n\n').map((para, i) => (
+                    <p key={i} style={styles.quotationPara}>{para}</p>
+                  ))}
+                </blockquote>
+                <div style={styles.source}>— {c.source}</div>
               </button>
             </li>
           ))}
@@ -141,5 +147,23 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: '#555',
     lineHeight: 1.4,
+  },
+  quotation: {
+    margin: '10px 0 4px',
+    paddingLeft: 12,
+    borderLeft: '3px solid #d8dde5',
+    fontFamily: 'Georgia, "Times New Roman", serif',
+    fontSize: 12.5,
+    color: '#3a3a3a',
+    fontStyle: 'italic',
+    lineHeight: 1.5,
+  },
+  quotationPara: {
+    margin: '0 0 6px',
+  },
+  source: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 2,
   },
 };
