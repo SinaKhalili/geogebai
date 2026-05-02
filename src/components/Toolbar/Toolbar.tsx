@@ -26,6 +26,7 @@ export function Toolbar() {
           onClick={() => setLibraryOpen(true)}
           style={styles.button}
           title="Construction library"
+          aria-label="Open construction library"
           onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0f0')}
           onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
         >

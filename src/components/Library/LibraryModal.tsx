@@ -26,12 +26,8 @@ export function LibraryModal({ onClose }: LibraryModalProps) {
         <ul style={styles.list}>
           {CONSTRUCTIONS.map((c) => (
             <li key={c.id}>
-              <button
+              <article
                 style={styles.item}
-                onClick={() => {
-                  loadConstruction(c);
-                  onClose();
-                }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f7fb')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
               >
@@ -46,7 +42,17 @@ export function LibraryModal({ onClose }: LibraryModalProps) {
                   ))}
                 </blockquote>
                 <div style={styles.source}>— {c.source}</div>
-              </button>
+                <button
+                  style={styles.itemButton}
+                  onClick={() => {
+                    loadConstruction(c);
+                    onClose();
+                  }}
+                  aria-label={`Load ${c.name}`}
+                >
+                  Load construction
+                </button>
+              </article>
             </li>
           ))}
         </ul>
@@ -165,5 +171,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11,
     color: '#888',
     marginTop: 2,
+  },
+  itemButton: {
+    width: '100%',
+    marginTop: 10,
+    padding: '6px 12px',
+    background: '#4a7aff',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 4,
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'background 0.12s',
+    fontFamily: 'inherit',
   },
 };
