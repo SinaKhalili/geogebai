@@ -3,7 +3,7 @@ import type { MathNode } from 'mathjs';
 
 const math = create(all);
 
-const STANDARD_VARS = new Set(['x', 'y', 't']);
+const STANDARD_VARS = new Set(['x', 'y', 'z', 't', 'u', 'v']);
 
 const MATH_FUNCTIONS = new Set([
   'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
