@@ -8,6 +8,7 @@ import {
 } from '../store/viewport3DStore';
 import { expressionStore, markExpressionsClean } from '../store/expressionStore';
 import { sliderStore, markSlidersClean, getSliderScope } from '../store/sliderStore';
+import { appearance3DStore } from '../store/appearance3DStore';
 
 export function useRenderLoop3D(canvasRef: React.RefObject<HTMLCanvasElement | null>): void {
   const engineRef = useRef<RenderEngine3D | null>(null);
@@ -64,6 +65,7 @@ export function useRenderLoop3D(canvasRef: React.RefObject<HTMLCanvasElement | n
         }
 
         engine.applyCamera(viewport3DStore.state);
+        engine.applyAppearance(appearance3DStore.state);
         engine.render();
         firstRenderDone = true;
 

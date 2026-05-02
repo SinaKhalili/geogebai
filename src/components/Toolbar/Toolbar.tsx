@@ -3,9 +3,12 @@ import { useStore } from '@tanstack/react-store';
 import { viewportStore, zoomViewport, resetViewport } from '../../store/viewportStore';
 import { dollyCamera, requestFit3D, reset3DViewport } from '../../store/viewport3DStore';
 import { appModeStore, toggleAppMode } from '../../store/appModeStore';
+import { appearance3DStore, setOpacity, toggleWireframe } from '../../store/appearance3DStore';
 
 export function Toolbar() {
   const mode = useStore(appModeStore, (s) => s.mode);
+  const wireframe = useStore(appearance3DStore, (s) => s.wireframe);
+  const opacity = useStore(appearance3DStore, (s) => s.opacity);
 
   const handleZoomIn = useCallback(() => {
     if (appModeStore.state.mode === '3D') {
@@ -66,6 +69,28 @@ export function Toolbar() {
       </button>
       {mode === '3D' && (
         <button
+          onClick={toggleWireframe}
+          style={{ ...styles.button, ...(wireframe ? styles.buttonActive : null) }}
+          title={wireframe ? 'Hide wireframe' : 'Show wireframe'}
+          onMouseEnter={(e) => {
+            if (!wireframe) e.currentTarget.style.background = '#f0f0f0';
+          }}
+          onMouseLeave={(e) => {
+            if (!wireframe) e.currentTarget.style.background = '#fff';
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M3 7h18" />
+            <path d="M3 12h18" />
+            <path d="M3 17h18" />
+            <path d="M7 3v18" />
+            <path d="M12 3v18" />
+            <path d="M17 3v18" />
+          </svg>
+        </button>
+      )}
+      {mode === '3D' && (
+        <button
           onClick={requestFit3D}
           style={styles.button}
           title="Fit camera to scene"
@@ -96,6 +121,20 @@ export function Toolbar() {
           <polyline points="3 7 3 13 9 13" />
         </svg>
       </button>
+      {mode === '3D' && (
+        <div style={styles.opacityChip} title="Surface opacity">
+          <span style={styles.opacityLabel}>α</span>
+          <input
+            type="range"
+            min={0.1}
+            max={1}
+            step={0.05}
+            value={opacity}
+            onChange={(e) => setOpacity(Number(e.target.value))}
+            style={styles.opacityRange}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -132,5 +171,32 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modeLabel: {
     letterSpacing: 0.5,
+  },
+  buttonActive: {
+    background: '#3a4a8a',
+    color: '#fff',
+    border: '1px solid #3a4a8a',
+  },
+  opacityChip: {
+    width: 110,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '0 8px',
+    height: 32,
+    borderRadius: 6,
+    background: '#fff',
+    border: '1px solid #ddd',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    color: '#444',
+  },
+  opacityLabel: {
+    fontSize: 12,
+    fontWeight: 600,
+    width: 12,
+  },
+  opacityRange: {
+    flex: 1,
+    accentColor: '#3a4a8a',
   },
 };

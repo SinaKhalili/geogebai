@@ -9,6 +9,7 @@ const EMPTY_RESULT: ParsedExpression = {
   type: 'unknown',
   evaluator: null,
   parametricEvaluator: null,
+  parametric3DEvaluator: null,
   inequalityOp: null,
   primitive: null,
   freeVariables: [],
@@ -20,6 +21,7 @@ function makeInvalid(error: string): ParsedExpression {
     type: 'invalid',
     evaluator: null,
     parametricEvaluator: null,
+    parametric3DEvaluator: null,
     inequalityOp: null,
     primitive: null,
     freeVariables: [],
@@ -32,29 +34,40 @@ function makeEvaluator(compiled: EvalFunction): (scope: Record<string, number>) 
 }
 
 /**
- * Detect which standard variables (x, y, z, t) appear in an expression string.
+ * Detect which standard variables (x, y, z, t, u, v) appear in an expression string.
  */
-function detectVariables(expr: string): { hasX: boolean; hasY: boolean; hasZ: boolean; hasT: boolean } {
+function detectVariables(expr: string): {
+  hasX: boolean;
+  hasY: boolean;
+  hasZ: boolean;
+  hasT: boolean;
+  hasU: boolean;
+  hasV: boolean;
+} {
   try {
     const node = math.parse(expr);
     let hasX = false;
     let hasY = false;
     let hasZ = false;
     let hasT = false;
+    let hasU = false;
+    let hasV = false;
 
     node.traverse((n) => {
       if (n.type === 'SymbolNode') {
         const name = (n as unknown as { name: string }).name;
         if (name === 'x') hasX = true;
-        if (name === 'y') hasY = true;
-        if (name === 'z') hasZ = true;
-        if (name === 't') hasT = true;
+        else if (name === 'y') hasY = true;
+        else if (name === 'z') hasZ = true;
+        else if (name === 't') hasT = true;
+        else if (name === 'u') hasU = true;
+        else if (name === 'v') hasV = true;
       }
     });
 
-    return { hasX, hasY, hasZ, hasT };
+    return { hasX, hasY, hasZ, hasT, hasU, hasV };
   } catch {
-    return { hasX: false, hasY: false, hasZ: false, hasT: false };
+    return { hasX: false, hasY: false, hasZ: false, hasT: false, hasU: false, hasV: false };
   }
 }
 
@@ -97,6 +110,7 @@ function tryParsePrimitive3D(raw: string): ParsedExpression | null {
       type: 'primitive3d',
       evaluator: null,
       parametricEvaluator: null,
+      parametric3DEvaluator: null,
       inequalityOp: null,
       primitive: { kind: 'sphere', r },
       freeVariables: [],
@@ -120,6 +134,7 @@ function tryParsePrimitive3D(raw: string): ParsedExpression | null {
     type: 'primitive3d',
     evaluator: null,
     parametricEvaluator: null,
+    parametric3DEvaluator: null,
     inequalityOp: null,
     primitive: { kind: 'cylinder', r, h },
     freeVariables: [],
@@ -128,46 +143,102 @@ function tryParsePrimitive3D(raw: string): ParsedExpression | null {
 }
 
 /**
- * Try to parse a parametric expression of the form (f(t), g(t)).
- * Returns null if it doesn't match the parametric pattern.
+ * Split a parenthesized tuple "(a, b, c)" on top-level commas.
+ * Respects nested parens / brackets / braces. Returns null if the input is
+ * not parenthesized.
+ */
+function splitTuple(raw: string): string[] | null {
+  const trimmed = raw.trim();
+  if (trimmed[0] !== '(' || trimmed[trimmed.length - 1] !== ')') return null;
+  const inner = trimmed.slice(1, -1);
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < inner.length; i++) {
+    const c = inner[i];
+    if (c === '(' || c === '[' || c === '{') depth++;
+    else if (c === ')' || c === ']' || c === '}') depth--;
+    else if (c === ',' && depth === 0) {
+      parts.push(inner.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  if (depth !== 0) return null;
+  parts.push(inner.slice(start).trim());
+  return parts.every((p) => p.length > 0) ? parts : null;
+}
+
+/**
+ * Try to parse a parametric expression. Supported forms:
+ *   2-tuple, only t                     -> parametric (2D)
+ *   3-tuple, only t (no u, v)           -> parametric_curve3d
+ *   3-tuple, u and/or v (no t, x, y, z) -> parametric_surface3d
+ * Returns null when the input is not a tuple at all (so other parsers can try).
+ * Returns an `invalid` ParsedExpression when the tuple is malformed.
  */
 function tryParseParametric(raw: string): ParsedExpression | null {
-  // Match (expr, expr) pattern
-  const match = raw.match(/^\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*$/);
-  if (!match) return null;
+  const parts = splitTuple(raw);
+  if (parts === null) return null;
 
-  const fxStr = match[1];
-  const fyStr = match[2];
+  const partVars = parts.map(detectVariables);
+  const anyXYZ = partVars.some((v) => v.hasX || v.hasY || v.hasZ);
+  const anyT = partVars.some((v) => v.hasT);
+  const anyUV = partVars.some((v) => v.hasU || v.hasV);
 
-  // Check that expressions use t but not x or y
-  const fxVars = detectVariables(fxStr);
-  const fyVars = detectVariables(fyStr);
-
-  const usesXYZ = fxVars.hasX || fxVars.hasY || fxVars.hasZ || fyVars.hasX || fyVars.hasY || fyVars.hasZ;
-  const usesT = fxVars.hasT || fyVars.hasT;
-
-  if (usesXYZ || !usesT) return null;
-
-  try {
-    const compiledFx = math.compile(fxStr);
-    const compiledFy = math.compile(fyStr);
-    const freeVariables = extractFreeVariables(raw);
-
-    return {
-      type: 'parametric',
-      evaluator: null,
-      parametricEvaluator: {
-        fx: makeEvaluator(compiledFx),
-        fy: makeEvaluator(compiledFy),
-      },
-      inequalityOp: null,
-      primitive: null,
-      freeVariables,
-      error: null,
-    };
-  } catch (e) {
-    return makeInvalid(e instanceof Error ? e.message : 'Failed to parse parametric expression');
+  // 2-tuple: must be 2D parametric of t.
+  if (parts.length === 2) {
+    if (anyXYZ || anyUV || !anyT) return null;
+    try {
+      const compiledFx = math.compile(parts[0]);
+      const compiledFy = math.compile(parts[1]);
+      const freeVariables = extractFreeVariables(raw);
+      return {
+        type: 'parametric',
+        evaluator: null,
+        parametricEvaluator: {
+          fx: makeEvaluator(compiledFx),
+          fy: makeEvaluator(compiledFy),
+        },
+        parametric3DEvaluator: null,
+        inequalityOp: null,
+        primitive: null,
+        freeVariables,
+        error: null,
+      };
+    } catch (e) {
+      return makeInvalid(e instanceof Error ? e.message : 'Failed to parse parametric expression');
+    }
   }
+
+  // 3-tuple: parametric curve (t) or surface (u, v).
+  if (parts.length === 3) {
+    if (anyXYZ) return makeInvalid('3D parametric must use t (curve) or u, v (surface), not x/y/z');
+    const isCurve = anyT && !anyUV;
+    const isSurface = anyUV && !anyT;
+    if (!isCurve && !isSurface) {
+      return makeInvalid('3D parametric must use either t (curve) or u, v (surface)');
+    }
+    try {
+      const fx = makeEvaluator(math.compile(parts[0]));
+      const fy = makeEvaluator(math.compile(parts[1]));
+      const fz = makeEvaluator(math.compile(parts[2]));
+      const freeVariables = extractFreeVariables(raw);
+      return {
+        type: isCurve ? 'parametric_curve3d' : 'parametric_surface3d',
+        evaluator: null,
+        parametricEvaluator: null,
+        parametric3DEvaluator: { fx, fy, fz },
+        inequalityOp: null,
+        primitive: null,
+        freeVariables,
+        error: null,
+      };
+    } catch (e) {
+      return makeInvalid(e instanceof Error ? e.message : 'Failed to parse 3D parametric expression');
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -255,6 +326,7 @@ function parseInequality(lhs: string, rhs: string, op: InequalityOp, raw: string
       type: 'inequality',
       evaluator: makeEvaluator(compiled),
       parametricEvaluator: null,
+      parametric3DEvaluator: null,
       inequalityOp: op,
       primitive: null,
       freeVariables,
@@ -301,6 +373,7 @@ function parseEquality(lhs: string, rhs: string, raw: string): ParsedExpression 
       type,
       evaluator: makeEvaluator(compiled),
       parametricEvaluator: null,
+      parametric3DEvaluator: null,
       inequalityOp: null,
       primitive: null,
       freeVariables,
@@ -320,6 +393,7 @@ function parseExplicit3D(expr: string, raw: string): ParsedExpression {
       type: 'explicit3d',
       evaluator: makeEvaluator(compiled),
       parametricEvaluator: null,
+      parametric3DEvaluator: null,
       inequalityOp: null,
       primitive: null,
       freeVariables,
@@ -339,6 +413,7 @@ function parseExplicit(expr: string, raw: string): ParsedExpression {
       type: 'explicit',
       evaluator: makeEvaluator(compiled),
       parametricEvaluator: null,
+      parametric3DEvaluator: null,
       inequalityOp: null,
       primitive: null,
       freeVariables,
@@ -367,6 +442,7 @@ function parseBarExpression(raw: string): ParsedExpression {
         type: 'implicit',
         evaluator: makeEvaluator(compiled),
         parametricEvaluator: null,
+        parametric3DEvaluator: null,
         inequalityOp: null,
         primitive: null,
         freeVariables,
@@ -382,6 +458,7 @@ function parseBarExpression(raw: string): ParsedExpression {
       type: 'explicit',
       evaluator: makeEvaluator(compiled),
       parametricEvaluator: null,
+      parametric3DEvaluator: null,
       inequalityOp: null,
       primitive: null,
       freeVariables,
