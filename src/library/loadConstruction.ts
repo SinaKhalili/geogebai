@@ -22,8 +22,8 @@ export function loadConstruction(c: Construction): void {
 
   if (c.sliders) {
     for (const [name, override] of Object.entries(c.sliders)) {
-      setSliderRange(name, override.min, override.max);
       setSliderValue(name, override.value);
+      setSliderRange(name, override.min, override.max);
       if (override.step !== undefined) setSliderStep(name, override.step);
     }
   }
