@@ -3,7 +3,7 @@ import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
 import { useRenderLoop } from '../../hooks/useRenderLoop';
 import { resizeViewport, viewportStore } from '../../store/viewportStore';
 
-export function GraphCanvas() {
+export function GraphCanvas2D() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mousePos = useRef<{ x: number; y: number } | null>(null);
 

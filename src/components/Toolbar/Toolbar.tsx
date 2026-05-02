@@ -1,23 +1,46 @@
 import { useCallback } from 'react';
+import { useStore } from '@tanstack/react-store';
 import { viewportStore, zoomViewport, resetViewport } from '../../store/viewportStore';
+import { dollyCamera, reset3DViewport } from '../../store/viewport3DStore';
+import { appModeStore, toggleAppMode } from '../../store/appModeStore';
 
 export function Toolbar() {
+  const mode = useStore(appModeStore, (s) => s.mode);
+
   const handleZoomIn = useCallback(() => {
+    if (appModeStore.state.mode === '3D') {
+      dollyCamera(0.85);
+      return;
+    }
     const { canvasWidth, canvasHeight } = viewportStore.state.coordSystem;
     zoomViewport(1.5, canvasWidth / 2, canvasHeight / 2);
   }, []);
 
   const handleZoomOut = useCallback(() => {
+    if (appModeStore.state.mode === '3D') {
+      dollyCamera(1.18);
+      return;
+    }
     const { canvasWidth, canvasHeight } = viewportStore.state.coordSystem;
     zoomViewport(0.667, canvasWidth / 2, canvasHeight / 2);
   }, []);
 
   const handleReset = useCallback(() => {
-    resetViewport();
+    if (appModeStore.state.mode === '3D') reset3DViewport();
+    else resetViewport();
   }, []);
 
   return (
     <div style={styles.toolbar}>
+      <button
+        onClick={toggleAppMode}
+        style={{ ...styles.button, ...styles.modeButton }}
+        title={mode === '3D' ? 'Switch to 2D' : 'Switch to 3D'}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0f0')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+      >
+        <span style={styles.modeLabel}>{mode === '3D' ? '3D' : '2D'}</span>
+      </button>
       <button
         onClick={handleZoomIn}
         style={styles.button}
@@ -82,5 +105,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 0,
     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
     transition: 'background 0.15s',
+  },
+  modeButton: {
+    fontWeight: 600,
+    fontSize: 12,
+  },
+  modeLabel: {
+    letterSpacing: 0.5,
   },
 };
