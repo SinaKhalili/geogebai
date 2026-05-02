@@ -80,6 +80,26 @@ export function toggleExpressionVisibility(id: string): void {
 }
 
 /**
+ * Replace the entire expression list with new entries built from raw strings.
+ * Each entry gets a fresh ID and is colored by its position in the list.
+ */
+export function replaceExpressions(raws: string[]): void {
+  const entries: ExpressionEntry[] = raws.map((raw, i) => ({
+    id: crypto.randomUUID(),
+    raw,
+    parsed: parseExpression(raw),
+    color: getColor(i),
+    visible: true,
+  }));
+
+  expressionStore.setState((prev) => ({
+    ...prev,
+    expressions: entries,
+    dirty: true,
+  }));
+}
+
+/**
  * Mark expressions as clean (rendered up to date).
  */
 export function markExpressionsClean(): void {
